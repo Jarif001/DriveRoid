@@ -1,0 +1,21 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        DriveRoid uses a custom Material 3 palette instead of the stock colours so that the
+        driving screen looks deliberate in both light and dark mode. The colour values
+        themselves are qualified resources (values/ + values-night/), so the same theme items
+        work in both modes.
+    -->
+    <style name="Base.Theme.DriveRoid" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/driveroid_primary</item>
+        <item name="colorOnPrimary">@color/driveroid_on_primary</item>
+        <item name="colorError">@color/driveroid_status_error</item>
+        <item name="colorSurface">@color/driveroid_surface</item>
+        <item name="colorOnSurface">@color/driveroid_text_primary</item>
+        <item name="colorOnBackground">@color/driveroid_text_primary</item>
+        <item name="colorOutline">@color/driveroid_outline</item>
+        <item name="android:colorBackground">@color/driveroid_background</item>
+        <item name="android:windowBackground">@color/driveroid_background</item>
+    </style>
+
+    <style name="Theme.DriveRoid" parent="Base.Theme.DriveRoid" />
+</resources>

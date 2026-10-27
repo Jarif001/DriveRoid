@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Dark driving palette. Same names as values/colors.xml, so MainActivity, the layout and
+        the theme do not need to know which mode is active.
+    -->
+    <color name="driveroid_background">#FF0B111A</color>
+    <color name="driveroid_surface">#FF151E2B</color>
+    <color name="driveroid_outline">#FF26344A</color>
+    <color name="driveroid_text_primary">#FFF3F7FC</color>
+    <color name="driveroid_text_secondary">#FF9BAABE</color>
+
+    <color name="driveroid_primary">#FF19C37D</color>
+    <color name="driveroid_on_primary">#FF04150D</color>
+
+    <color name="driveroid_stop">#FFE5484D</color>
+    <color name="driveroid_on_stop">#FFFFFFFF</color>
+
+    <color name="driveroid_status_idle">#FF64748B</color>
+    <color name="driveroid_status_active">#FF19C37D</color>
+    <color name="driveroid_status_pending">#FFF5A524</color>
+    <color name="driveroid_status_error">#FFFF6B6B</color>
+</resources>

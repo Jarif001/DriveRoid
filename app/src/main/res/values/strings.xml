@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">DriveRoid</string>
+    <string name="app_description">Your hands-free voice assistant for safer, easier driving.</string>
+
+    <!-- Primary action -->
+    <string name="action_start_listening">START LISTENING</string>
+    <string name="action_stop_listening">STOP LISTENING</string>
+
+    <!-- Assistant status -->
+    <string name="status_not_listening">Not listening</string>
+    <string name="status_starting">Starting…</string>
+    <string name="status_listening">Listening</string>
+    <string name="status_processing">Processing</string>
+    <string name="status_waiting_for_response">Waiting for your answer</string>
+    <string name="status_calling">Calling</string>
+    <string name="status_error">Error</string>
+
+    <!-- Assistant status detail -->
+    <string name="detail_stopped">Press START LISTENING to activate the assistant. DriveRoid stays silent until you do.</string>
+    <string name="detail_starting">Activating the voice assistant…</string>
+    <string name="detail_listening_wake_word">Say “Hey DriveRoid” to start a command. DriveRoid keeps running while you drive.</string>
+    <string name="detail_listening_command">Listening for your command…</string>
+    <string name="detail_heard">Heard: “%1$s”</string>
+    <string name="detail_processing">Working on your request…</string>
+    <string name="detail_waiting_for_response">Waiting for your answer.</string>
+    <string name="detail_calling">Calling…</string>
+    <string name="detail_error_permission_denied">Microphone access is required. Allow it and try again.</string>
+    <string name="detail_error_microphone_unavailable">This device has no microphone, so the assistant cannot run.</string>
+    <string name="detail_error_service_start_failed">The assistant could not start. Please try again.</string>
+    <string name="detail_error_pipeline_start_failed">The voice engine could not start. Please try again.</string>
+    <string name="detail_error_recognition_unavailable">No speech recognition service found. Install or enable one (for example the Google app) and try again.</string>
+    <string name="detail_error_unknown">Something went wrong. Please try again.</string>
+
+    <!-- Screen footer -->
+    <string name="footer_hint">DriveRoid stays active while you drive, even in other apps. Closing the app ends the assistant.</string>
+
+    <!-- Permission hints -->
+    <string name="snackbar_microphone_required">Microphone permission is required for the voice assistant.</string>
+    <string name="snackbar_notifications_disabled">Notifications are off, so the listening notification may stay hidden.</string>
+    <string name="action_open_settings">Settings</string>
+
+    <!-- Foreground service notification -->
+    <string name="notification_channel_name">Voice assistant</string>
+    <string name="notification_channel_description">Shows while DriveRoid is listening through the microphone.</string>
+    <string name="notification_title_listening">My Phone is listening</string>
+    <string name="notification_text_active">DriveRoid is active. Tap to open, or stop the assistant from here.</string>
+    <string name="notification_text_starting">Starting the voice assistant…</string>
+    <string name="notification_text_error">The voice assistant ran into a problem.</string>
+    <string name="notification_action_stop">Stop</string>
+</resources>

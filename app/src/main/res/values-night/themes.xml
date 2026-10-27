@@ -1,0 +1,18 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        Night (driving) theme. Resource qualifiers replace instead of merge, so the item list
+        intentionally mirrors values/themes.xml; the difference comes from the colour resources
+        in values-night/colors.xml.
+    -->
+    <style name="Base.Theme.DriveRoid" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/driveroid_primary</item>
+        <item name="colorOnPrimary">@color/driveroid_on_primary</item>
+        <item name="colorError">@color/driveroid_status_error</item>
+        <item name="colorSurface">@color/driveroid_surface</item>
+        <item name="colorOnSurface">@color/driveroid_text_primary</item>
+        <item name="colorOnBackground">@color/driveroid_text_primary</item>
+        <item name="colorOutline">@color/driveroid_outline</item>
+        <item name="android:colorBackground">@color/driveroid_background</item>
+        <item name="android:windowBackground">@color/driveroid_background</item>
+    </style>
+</resources>

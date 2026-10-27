@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        DriveRoid palette (light / default). The dark driving variant with the same names lives in
+        values-night/colors.xml, so every reference below adapts to the system theme.
+    -->
+    <color name="driveroid_background">#FFF7F9FC</color>
+    <color name="driveroid_surface">#FFFFFFFF</color>
+    <color name="driveroid_outline">#FFDCE3EC</color>
+    <color name="driveroid_text_primary">#FF0B111A</color>
+    <color name="driveroid_text_secondary">#FF5A6B80</color>
+
+    <!-- Primary action (START LISTENING) -->
+    <color name="driveroid_primary">#FF0E9F6E</color>
+    <color name="driveroid_on_primary">#FFFFFFFF</color>
+
+    <!-- Destructive action (STOP LISTENING) -->
+    <color name="driveroid_stop">#FFD93A3A</color>
+    <color name="driveroid_on_stop">#FFFFFFFF</color>
+
+    <!-- Assistant status indicator -->
+    <color name="driveroid_status_idle">#FF8A97AA</color>
+    <color name="driveroid_status_active">#FF0E9F6E</color>
+    <color name="driveroid_status_pending">#FFB26A00</color>
+    <color name="driveroid_status_error">#FFC0392B</color>
+</resources>

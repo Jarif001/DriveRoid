@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Voice input. This is the only dangerous permission DriveRoid asks for at runtime. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Foreground service (required since Android 9) and the microphone service type
+         (required since Android 14 for android:foregroundServiceType="microphone").
+         Both are install-time permissions, so they are never requested at runtime. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- Android 13+ requires this to display the persistent "listening" notification. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- A voice assistant without a microphone cannot work at all. -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="true" />
+
+    <!--
+        Package visibility (Android 11+). The platform looks for an installed speech recognition
+        service with PackageManager.queryIntentServices(RecognitionService.SERVICE_INTERFACE), and
+        for apps targeting API 30 those results are filtered unless the intent is declared here.
+        Without this block every recognition service stays invisible and the app wrongly reports
+        "Speech recognition is not available on this device".
+        (See the createSpeechRecognizer() documentation in android.speech.SpeechRecognizer.)
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.DriveRoid">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            The assistant itself. It is not exported: only DriveRoid starts it, and the
+            assistant state reaches the UI through AssistantStateRepository instead of a binding.
+
+            android:stopWithTask="false" documents that task removal is handled explicitly in
+            VoiceAssistantService.onTaskRemoved().
+        -->
+        <service
+            android:name=".assistant.VoiceAssistantService"
+            android:exported="false"
+            android:foregroundServiceType="microphone"
+            android:stopWithTask="false"
+            tools:ignore="ExportedService" />
+    </application>
+
+</manifest>
