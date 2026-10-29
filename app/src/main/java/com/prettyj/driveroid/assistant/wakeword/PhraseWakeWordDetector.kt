@@ -76,6 +76,10 @@ class PhraseWakeWordDetector(
         const val TAG = "PhraseWakeWordDetector"
         val NON_WORD = "[^\\p{L}\\p{N}\\s]+".toRegex()
         val SPACES = "\\s+".toRegex()
-        val DEFAULT_PHRASES = listOf("hey driveroid", "ok driveroid", "driveroid")
+        val DEFAULT_PHRASES = listOf(
+            "hey driveroid", "ok driveroid", "driveroid",
+            "drive ride", "hey drive ride",
+            "drive ryan", "drive road", "drive way", "drive right", "drive red"
+        )
     }
 }

@@ -73,7 +73,7 @@ class VoiceAssistantController(
     private val speechListener = object : SpeechEventListener {
         override fun onPartialResult(text: String) {
             if (!isRunning) return
-            AssistantStateRepository.publishTranscript(text)
+            AssistantStateRepository.publishTranscript(transcriptToShow(text))
         }
 
         override fun onResult(text: String) {
@@ -81,12 +81,17 @@ class VoiceAssistantController(
             cancelWatchdog()
             failures = 0
             engineFailures = 0
-            AssistantStateRepository.publishTranscript(text)
+            AssistantStateRepository.publishTranscript(transcriptToShow(text))
             when (session) {
                 Session.WAKE_WORD -> onWakeWordUtterance(text)
                 Session.COMMAND -> onCommandUtterance(text)
             }
         }
+
+        /** When listening for the wake word, show "driveroid" instead of a mis-heard variant. */
+        private fun transcriptToShow(text: String): String =
+            if (session == Session.WAKE_WORD && wakeWordDetector.matchWakeWord(text) != null) "driveroid"
+            else text
 
         override fun onError(error: SpeechErrorKind) {
             if (!isRunning) return

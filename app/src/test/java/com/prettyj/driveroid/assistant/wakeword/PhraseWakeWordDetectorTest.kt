@@ -44,9 +44,28 @@ class PhraseWakeWordDetectorTest {
 
     @Test
     fun `matches every supported variant`() {
-        listOf("driveroid", "ok driveroid", "hey driveroid").forEach { phrase ->
+        listOf(
+            "driveroid", "ok driveroid", "hey driveroid",
+            "drive ride", "hey drive ride",
+            "drive ryan", "drive road", "drive way", "drive right", "drive red"
+        ).forEach { phrase ->
             assertEquals("phrase=$phrase", "", detector.matchWakeWord(phrase))
         }
+    }
+
+    @Test
+    fun `returns text after a drive- variants wake word`() {
+        assertEquals("call mom", detector.matchWakeWord("drive ryan call mom"))
+        assertEquals("open maps", detector.matchWakeWord("drive road open maps"))
+        assertEquals("navigate home", detector.matchWakeWord("drive way navigate home"))
+        assertEquals("turn left", detector.matchWakeWord("drive right turn left"))
+        assertEquals("stop here", detector.matchWakeWord("drive red stop here"))
+    }
+
+    @Test
+    fun `matches drive ride as driveroid alias`() {
+        assertEquals("call mom", detector.matchWakeWord("drive ride call mom"))
+        assertEquals("", detector.matchWakeWord("hey drive ride"))
     }
 
     @Test
