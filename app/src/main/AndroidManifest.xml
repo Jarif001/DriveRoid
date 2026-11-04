@@ -5,6 +5,10 @@
     <!-- Voice input. This is the only dangerous permission DriveRoid asks for at runtime. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- Contacts and phone: needed to look up contacts and place calls. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+
     <!-- Foreground service (required since Android 9) and the microphone service type
          (required since Android 14 for android:foregroundServiceType="microphone").
          Both are install-time permissions, so they are never requested at runtime. -->
@@ -31,6 +35,10 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
+        <!-- Messenger: so we can detect whether it is installed before launching it. -->
+        <package android:name="com.facebook.orca" />
+        <!-- WhatsApp: so we can detect whether it is installed before launching it. -->
+        <package android:name="com.whatsapp" />
     </queries>
 
     <application

@@ -4,6 +4,10 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.MainThread
+import com.prettyj.driveroid.assistant.CommandParser
+import com.prettyj.driveroid.assistant.CallManager
+import com.prettyj.driveroid.assistant.Command
+import com.prettyj.driveroid.assistant.ContactManager
 import com.prettyj.driveroid.assistant.speech.SpeechErrorKind
 import com.prettyj.driveroid.assistant.speech.SpeechEventListener
 import com.prettyj.driveroid.assistant.speech.SpeechRecognizerManager
@@ -39,7 +43,7 @@ import com.prettyj.driveroid.util.DriveroidLog
  * All methods must be called from the main thread, which is also where recogniser callbacks arrive.
  */
 class VoiceAssistantController(
-    context: Context,
+    private val context: Context,
     private val wakeWordDetector: WakeWordDetector = PhraseWakeWordDetector(),
     /** Invoked once when the pipeline fails for good, so the service can tear itself down. */
     private val onFatalError: (AssistantError) -> Unit = {},
@@ -64,6 +68,12 @@ class VoiceAssistantController(
 
     private var pendingRestart: Runnable? = null
     private var pendingWatchdog: Runnable? = null
+
+    /** While a "call <name>" was heard without "in messenger", holds the contact name. */
+    private var pendingCallContact: String? = null
+
+    /** Timer that, when it fires, places the phone call because "in messenger" was not added. */
+    private var pendingCallTimer: Runnable? = null
 
     /** `true` while the pipeline is prepared and the assistant is supposed to be running. */
     var isRunning: Boolean = false
@@ -141,6 +151,7 @@ class VoiceAssistantController(
         session = Session.WAKE_WORD
         cancelPendingRestart()
         cancelWatchdog()
+        cancelPendingCallTimer()
         releasePipeline()
         if (AssistantStateRepository.current.state != AssistantState.ERROR) {
             AssistantStateRepository.update(AssistantState.STOPPED)
@@ -208,14 +219,127 @@ class VoiceAssistantController(
 
     private fun onCommandUtterance(text: String) {
         session = Session.COMMAND
-        AssistantStateRepository.update(AssistantState.PROCESSING)
-        DriveroidLog.i(TAG, "Command captured: \"$text\"")
-        // Phase 3 hands this transcript to CommandParser -> ContactManager -> CallManager; until
-        // then the assistant acknowledges the captured command and goes back to the wake word.
-        scheduleRestart(PROCESSING_HOLD_MILLIS, "command acknowledged") {
-            session = Session.WAKE_WORD
-            AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+
+        // If we are waiting for "in messenger" after a "call <name>", this utterance may be the suffix.
+        if (pendingCallContact != null) {
+            handlePendingCallSuffix(text)
+            return
         }
+
+        val command = CommandParser.parse(text)
+
+        when (command) {
+            is Command.CallMessenger -> {
+                AssistantStateRepository.update(AssistantState.CALLING)
+                DriveroidLog.i(TAG, "Messenger call: ${command.contactName}")
+                cancelPendingRestart()
+                placeMessengerCall(command.contactName)
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "messenger call initiated") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+
+            is Command.CallWhatsApp -> {
+                AssistantStateRepository.update(AssistantState.PROCESSING)
+                DriveroidLog.i(TAG, "WhatsApp call: ${command.contactName}, resolving number")
+                placeWhatsAppCall(command.contactName)
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "whatsapp call initiated") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+
+            is Command.CallPhone -> {
+                // Heard "call <name>" without "in messenger". Wait briefly in case the user
+                // adds "in messenger" before we place the phone call.
+                pendingCallContact = command.contactName
+                AssistantStateRepository.update(AssistantState.PROCESSING)
+                DriveroidLog.i(TAG, "Waiting for 'in messenger' suffix before calling ${command.contactName}")
+                pendingCallTimer = Runnable {
+                    pendingCallTimer = null
+                    val contact = pendingCallContact
+                    pendingCallContact = null
+                    if (contact != null) placePhoneCall(contact)
+                    scheduleRestart(PROCESSING_HOLD_MILLIS, "phone call initiated") {
+                        session = Session.WAKE_WORD
+                        AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                    }
+                }
+                pendingCallTimer?.let { timer ->
+                    mainHandler.postDelayed(timer, CALL_WAIT_MILLIS)
+                }
+            }
+
+            is Command.Unknown -> {
+                AssistantStateRepository.update(AssistantState.PROCESSING)
+                DriveroidLog.w(TAG, "Unrecognised command: $text")
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "command acknowledged") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+        }
+    }
+
+    /** Handles a transcript that arrives while we are waiting for an "in messenger" suffix. */
+    private fun handlePendingCallSuffix(text: String) {
+        val lower = text.lowercase()
+        val contact = pendingCallContact
+        pendingCallContact = null
+        cancelPendingCallTimer()
+
+        if (lower.contains("in messenger")) {
+            contact?.let {
+                AssistantStateRepository.update(AssistantState.CALLING)
+                DriveroidLog.i(TAG, "Messenger call (suffix): $it")
+                placeMessengerCall(it)
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "messenger call initiated") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+        } else {
+            // Not a messenger suffix: treat this as a new command from scratch.
+            DriveroidLog.i(TAG, "No 'in messenger' suffix; treating '$text' as a new command")
+            onCommandUtterance(text)
+        }
+    }
+
+    /** Places a phone call to the contact resolved from [contactName]. */
+    private fun placePhoneCall(contactName: String) {
+        val number = ContactManager(context.applicationContext).lookupNumber(contactName)
+        if (number == null) {
+            DriveroidLog.w(TAG, "No phone number found for contact '$contactName'")
+            return
+        }
+        AssistantStateRepository.update(AssistantState.CALLING)
+        DriveroidLog.i(TAG, "Placing phone call to $contactName ($number)")
+        CallManager(context.applicationContext).callPhone(number)
+    }
+
+    /** Opens Messenger to place a call to [contactName]. */
+    private fun placeMessengerCall(contactName: String) {
+        DriveroidLog.i(TAG, "Opening Messenger to call $contactName")
+        CallManager(context.applicationContext).callMessenger(contactName)
+    }
+
+    /** Looks up [contactName]'s phone number and opens WhatsApp to place a call there. */
+    private fun placeWhatsAppCall(contactName: String) {
+        val number = ContactManager(context.applicationContext).lookupNumber(contactName)
+        if (number == null) {
+            DriveroidLog.w(TAG, "No phone number found for contact '$contactName'; cannot open WhatsApp")
+            return
+        }
+        AssistantStateRepository.update(AssistantState.CALLING)
+        DriveroidLog.i(TAG, "Opening WhatsApp chat with $contactName ($number)")
+        CallManager(context.applicationContext).callWhatsApp(number)
+    }
+
+    /** Cancels the pending "in messenger" wait timer, if any. */
+    private fun cancelPendingCallTimer() {
+        pendingCallTimer?.let { mainHandler.removeCallbacks(it) }
+        pendingCallTimer = null
     }
 
     private fun onRecognitionError(error: SpeechErrorKind) {
@@ -354,6 +478,9 @@ class VoiceAssistantController(
 
         /** How long [AssistantState.PROCESSING] is shown so the user sees their command was taken. */
         const val PROCESSING_HOLD_MILLIS = 1_200L
+
+        /** After "call <name>", how long to wait for "in messenger" before placing a phone call. */
+        const val CALL_WAIT_MILLIS = 2_000L
 
         /** No recogniser callback at all within this window means the session is stuck. */
         const val WATCHDOG_MILLIS = 30_000L

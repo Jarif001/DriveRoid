@@ -17,10 +17,10 @@ import androidx.core.content.ContextCompat
  *  - [Manifest.permission.POST_NOTIFICATIONS]: required from Android 13 (API 33) onwards so that
  *    the persistent "listening" notification can be displayed. When it is denied the assistant
  *    still runs, the notification is simply hidden by the system.
+ *  - [Manifest.permission.READ_CONTACTS]: needed to look up contacts by name for calling.
+ *  - [Manifest.permission.CALL_PHONE]: needed to place phone calls.
  *  - `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_MICROPHONE` are install-time permissions, so they
  *    are declared in the manifest and never requested at runtime.
- *
- * No other permission is needed in this phase (no contacts, no phone state, no audio routing).
  */
 object AssistantPermissions {
 
@@ -30,6 +30,8 @@ object AssistantPermissions {
         if (needsNotificationPermission() && !hasNotificationAccess(context)) {
             add(Manifest.permission.POST_NOTIFICATIONS)
         }
+        if (!hasContactsAccess(context)) add(Manifest.permission.READ_CONTACTS)
+        if (!hasPhoneAccess(context)) add(Manifest.permission.CALL_PHONE)
     }
 
     fun hasMicrophoneAccess(context: Context): Boolean =
@@ -48,6 +50,16 @@ object AssistantPermissions {
             context,
             Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
+
+    /** `true` when the READ_CONTACTS permission is granted. */
+    fun hasContactsAccess(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    /** `true` when the CALL_PHONE permission is granted. */
+    fun hasPhoneAccess(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) ==
+            PackageManager.PERMISSION_GRANTED
 
     /** Notification settings of DriveRoid, used when the notification permission is missing. */
     fun notificationSettingsIntent(context: Context): Intent =
