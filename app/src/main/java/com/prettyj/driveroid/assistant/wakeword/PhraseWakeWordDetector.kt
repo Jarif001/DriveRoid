@@ -79,7 +79,9 @@ class PhraseWakeWordDetector(
         val DEFAULT_PHRASES = listOf(
             "hey driveroid", "ok driveroid", "driveroid",
             "drive ride", "hey drive ride",
-            "drive ryan", "drive road", "drive way", "drive right", "drive red"
+            "drive ryan", "drive road", "drive way", "drive right", "drive red", "driver", "hey driver", "drive royed",
+            "hey drive royed", "hey drive road", "hey drive way", "hey drive right", "hey drive red",
+            "drive royale", "hey drive royale", "drive royal", "hey drive royal"
         )
     }
 }

@@ -25,6 +25,47 @@ class CommandParserTest {
     }
 
     @Test
+    fun `parses spelled-out name as phone call`() {
+        assertEquals(Command.CallPhone("hasnat"), CommandParser.parse("call h a s n a t"))
+        assertEquals(Command.CallPhone("amu"), CommandParser.parse("call a m u"))
+    }
+
+    @Test
+    fun `parses spelled-out name in messenger`() {
+        assertEquals(Command.CallMessenger("hasnat"), CommandParser.parse("call h a s n a t in messenger"))
+    }
+
+    @Test
+    fun `parses spelled-out name in whatsapp`() {
+        assertEquals(Command.CallWhatsApp("hasnat", ""), CommandParser.parse("call h a s n a t in whatsapp"))
+        assertEquals(Command.CallWhatsApp("hasnat", ""), CommandParser.parse("call h a s n a t in whats app"))
+        assertEquals(Command.CallWhatsApp("hasnat", ""), CommandParser.parse("call h a s n a t in whats up"))
+    }
+
+    @Test
+    fun `concatenates spelled-out name with letters together`() {
+        assertEquals(Command.CallPhone("hasnat"), CommandParser.parse("call h as nat"))
+        assertEquals(Command.CallPhone("hasnat"), CommandParser.parse("call ha snat"))
+    }
+
+    @Test
+    fun `concatenates spelled-out name with punctuation between letters`() {
+        assertEquals(Command.CallPhone("hasnat"), CommandParser.parse("call h.a.s.n.a.t"))
+        assertEquals(Command.CallPhone("hasnat"), CommandParser.parse("call h, a, s, n, a, t"))
+    }
+
+    @Test
+    fun `parses spelled-out name in whatsapp with punctuation`() {
+        assertEquals(Command.CallWhatsApp("hasnat", ""), CommandParser.parse("call h.a.s.n.a.t in whatsapp"))
+    }
+
+    @Test
+    fun `does not concatenate non-letter tokens`() {
+        // Contains a digit: keep as-is.
+        assertEquals(Command.CallPhone("a1 b"), CommandParser.parse("call a1 b"))
+    }
+
+    @Test
     fun `is case insensitive`() {
         assertEquals(Command.CallPhone("amu"), CommandParser.parse("CALL AMU"))
         assertEquals(Command.CallMessenger("amu"), CommandParser.parse("Call AmU in Messenger"))
