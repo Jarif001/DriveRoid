@@ -8,6 +8,7 @@ import com.prettyj.driveroid.assistant.CommandParser
 import com.prettyj.driveroid.assistant.CallManager
 import com.prettyj.driveroid.assistant.Command
 import com.prettyj.driveroid.assistant.ContactManager
+import com.prettyj.driveroid.assistant.MusicManager
 import com.prettyj.driveroid.assistant.speech.SpeechErrorKind
 import com.prettyj.driveroid.assistant.speech.SpeechEventListener
 import com.prettyj.driveroid.assistant.speech.SpeechRecognizerManager
@@ -245,6 +246,36 @@ class VoiceAssistantController(
                 DriveroidLog.i(TAG, "WhatsApp call: ${command.contactName}, resolving number")
                 placeWhatsAppCall(command.contactName)
                 scheduleRestart(PROCESSING_HOLD_MILLIS, "whatsapp call initiated") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+
+            is Command.OpenMusicApp -> {
+                AssistantStateRepository.update(AssistantState.PROCESSING)
+                DriveroidLog.i(TAG, "Opening music app: ${command.appName}")
+                MusicManager(context.applicationContext).openMusicApp(command.appName)
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "music app opened") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+
+            is Command.SearchMusicInApp -> {
+                AssistantStateRepository.update(AssistantState.PROCESSING)
+                DriveroidLog.i(TAG, "Searching in ${command.appName}: ${command.query}")
+                MusicManager(context.applicationContext).searchMusicInApp(command.query, command.appName)
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "music search initiated") {
+                    session = Session.WAKE_WORD
+                    AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
+                }
+            }
+
+            is Command.PlayMusicInApp -> {
+                AssistantStateRepository.update(AssistantState.PROCESSING)
+                DriveroidLog.i(TAG, "Playing in ${command.appName}: ${command.query}")
+                MusicManager(context.applicationContext).playMusicInApp(command.query, command.appName)
+                scheduleRestart(PROCESSING_HOLD_MILLIS, "music playback initiated") {
                     session = Session.WAKE_WORD
                     AssistantStateRepository.update(AssistantState.LISTENING_FOR_WAKE_WORD)
                 }

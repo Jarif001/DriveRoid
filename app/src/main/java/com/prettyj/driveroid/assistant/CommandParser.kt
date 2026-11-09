@@ -11,6 +11,15 @@ sealed class Command {
     /** Place a WhatsApp call to a contact (resolved by phone number). */
     data class CallWhatsApp(val contactName: String, val phoneNumber: String) : Command()
 
+    /** Open a music app (YouTube Music or Spotify). */
+    data class OpenMusicApp(val appName: String) : Command()
+
+    /** Search for [query] in [appName] and show results. */
+    data class SearchMusicInApp(val query: String, val appName: String) : Command()
+
+    /** Search for [query] in [appName] and play the first result. */
+    data class PlayMusicInApp(val query: String, val appName: String) : Command()
+
     /** The transcript could not be understood as any supported command. */
     data class Unknown(val transcript: String) : Command()
 }
@@ -32,15 +41,60 @@ sealed class Command {
  */
 object CommandParser {
     private const val CALL_PREFIX = "call "
+    private const val OPEN_PREFIX = "open "
+    private const val PLAY_PREFIX = "play "
+    private const val SEARCH_PREFIX = "search "
 
     private val messengerSuffixes = listOf(" in messenger")
     private val whatsappSuffixes = listOf(" in whatsapp", " in whats app", " in whats up")
 
+    private val musicAppSuffixes = mapOf(
+        " in youtube music" to "youtube music",
+        " in spotify" to "spotify"
+    )
+
     fun parse(transcript: String): Command {
         val text = transcript.trim().lowercase()
-        if (!text.startsWith(CALL_PREFIX)) {
+        if (!text.startsWith(CALL_PREFIX) && !text.startsWith(OPEN_PREFIX) && !text.startsWith(PLAY_PREFIX) && !text.startsWith(SEARCH_PREFIX)) {
             return Command.Unknown(transcript)
         }
+
+        // --- "open <app>" ---
+        if (text.startsWith(OPEN_PREFIX)) {
+            val appPart = text.substring(OPEN_PREFIX.length).trim()
+            val appName = normalizeMusicAppName(appPart)
+            return if (appName.isNotEmpty()) Command.OpenMusicApp(appName) else Command.Unknown(transcript)
+        }
+
+        // --- "search <query> in <app>" ---
+        if (text.startsWith(SEARCH_PREFIX)) {
+            val afterSearch = text.substring(SEARCH_PREFIX.length).trim()
+            for ((suffix, appName) in musicAppSuffixes) {
+                if (afterSearch.endsWith(suffix)) {
+                    val query = afterSearch.substring(0, afterSearch.length - suffix.length).trim()
+                    return if (query.isNotEmpty()) Command.SearchMusicInApp(query, appName) else Command.Unknown(transcript)
+                }
+            }
+            return Command.Unknown(transcript)
+        }
+
+        // --- "play <query> in <app>" ---
+        if (text.startsWith(PLAY_PREFIX)) {
+            val afterPlay = text.substring(PLAY_PREFIX.length).trim()
+
+            // Detect music app suffix
+            for ((suffix, appName) in musicAppSuffixes) {
+                if (afterPlay.endsWith(suffix)) {
+                    val query = afterPlay.substring(0, afterPlay.length - suffix.length).trim()
+                    return if (query.isNotEmpty()) Command.PlayMusicInApp(query, appName) else Command.Unknown(transcript)
+                }
+            }
+
+            // No music app suffix → unknown
+            return Command.Unknown(transcript)
+        }
+
+        // --- "call <name> [suffix]" ---
 
         val afterCall = text.substring(CALL_PREFIX.length).trim()
 
@@ -102,5 +156,14 @@ object CommandParser {
         }
 
         return namePart
+    }
+
+    /** Normalises a music app name: "youtube music" → "youtube music", "spotify" → "spotify". Returns empty for unknown apps. */
+    private fun normalizeMusicAppName(appPart: String): String {
+        return when (appPart) {
+            "youtube music", "youtube" -> "youtube music"
+            "spotify" -> "spotify"
+            else -> ""
+        }
     }
 }

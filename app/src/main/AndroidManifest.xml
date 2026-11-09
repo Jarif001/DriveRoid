@@ -39,6 +39,10 @@
         <package android:name="com.facebook.orca" />
         <!-- WhatsApp: so we can detect whether it is installed before launching it. -->
         <package android:name="com.whatsapp" />
+        <!-- YouTube Music: so we can detect whether it is installed before launching it. -->
+        <package android:name="com.google.android.apps.youtube.music" />
+        <!-- Spotify: so we can detect whether it is installed before launching it. -->
+        <package android:name="com.spotify.music" />
     </queries>
 
     <application

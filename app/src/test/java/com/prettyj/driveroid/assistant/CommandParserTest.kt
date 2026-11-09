@@ -84,4 +84,44 @@ class CommandParserTest {
         assertEquals(Command.Unknown("call"), CommandParser.parse("call"))
         assertEquals(Command.Unknown(""), CommandParser.parse(""))
     }
+
+    @Test
+    fun `parses open music app`() {
+        assertEquals(Command.OpenMusicApp("youtube music"), CommandParser.parse("open youtube music"))
+        assertEquals(Command.OpenMusicApp("youtube music"), CommandParser.parse("open youtube"))
+        assertEquals(Command.OpenMusicApp("spotify"), CommandParser.parse("open spotify"))
+    }
+
+    @Test
+    fun `parses play music in app`() {
+        assertEquals(Command.PlayMusicInApp("you are beautiful", "youtube music"), CommandParser.parse("play you are beautiful in youtube music"))
+        assertEquals(Command.PlayMusicInApp("superman by boyce avenue", "spotify"), CommandParser.parse("play superman by boyce avenue in spotify"))
+    }
+
+    @Test
+    fun `play music without app suffix is unknown`() {
+        assertEquals(Command.Unknown("play you are beautiful"), CommandParser.parse("play you are beautiful"))
+    }
+
+    @Test
+    fun `open unknown app is unknown`() {
+        assertEquals(Command.Unknown("open apple music"), CommandParser.parse("open apple music"))
+    }
+
+    @Test
+    fun `parses search music in app`() {
+        assertEquals(Command.SearchMusicInApp("beautiful", "spotify"), CommandParser.parse("search beautiful in spotify"))
+        assertEquals(Command.SearchMusicInApp("you are beautiful", "youtube music"), CommandParser.parse("search you are beautiful in youtube music"))
+    }
+
+    @Test
+    fun `search music without app suffix is unknown`() {
+        assertEquals(Command.Unknown("search beautiful"), CommandParser.parse("search beautiful"))
+    }
+
+    @Test
+    fun `search vs play are different commands`() {
+        assertEquals(Command.SearchMusicInApp("beautiful", "spotify"), CommandParser.parse("search beautiful in spotify"))
+        assertEquals(Command.PlayMusicInApp("beautiful", "spotify"), CommandParser.parse("play beautiful in spotify"))
+    }
 }
