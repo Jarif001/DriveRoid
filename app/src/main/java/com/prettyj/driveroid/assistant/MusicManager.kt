@@ -156,37 +156,39 @@ class MusicManager(private val context: Context) {
         return openMusicApp("youtube music")
     }
 
-    /** Searches Spotify for [query] using its deep link or web URL fallback. */
+    /** Searches Spotify for [query] using web URL first (Android App Link), then deep link fallback. */
     private fun searchInSpotify(query: String): Boolean {
         val encoded = Uri.encode(query)
 
-        val spotifyIntent = Intent(Intent.ACTION_VIEW, Uri.parse("spotify://search?q=$encoded")).apply {
+        // Web URL first - Android App Links are more reliable than custom schemes for Spotify.
+        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com/search/$encoded")).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         }
 
         val pm = context.packageManager
-        if (pm.resolveActivity(spotifyIntent, 0) != null) {
-            try {
-                context.startActivity(spotifyIntent)
-                DriveroidLog.i(TAG, "Searching Spotify via deep link for: $query")
-                return true
-            } catch (e: Exception) {
-                DriveroidLog.w(TAG, "Spotify deep link failed, trying web URL fallback", e)
-            }
-        } else {
-            DriveroidLog.w(TAG, "No app handles spotify:// deep link, trying web URL fallback")
-        }
-
-        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com/search/result?q=$encoded")).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        }
         if (pm.resolveActivity(webIntent, 0) != null) {
             try {
                 context.startActivity(webIntent)
                 DriveroidLog.i(TAG, "Searching Spotify via web URL for: $query")
                 return true
             } catch (e: Exception) {
-                DriveroidLog.w(TAG, "Spotify web URL failed, just opening app", e)
+                DriveroidLog.w(TAG, "Spotify web URL failed, trying deep link fallback", e)
+            }
+        } else {
+            DriveroidLog.w(TAG, "No app handles Spotify web URL, trying deep link")
+        }
+
+        // Fall back: Spotify deep link using correct URI scheme: spotify:search:QUERY
+        val spotifyIntent = Intent(Intent.ACTION_VIEW, Uri.parse("spotify:search:$encoded")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+        }
+        if (pm.resolveActivity(spotifyIntent, 0) != null) {
+            try {
+                context.startActivity(spotifyIntent)
+                DriveroidLog.i(TAG, "Searching Spotify via deep link for: $query")
+                return true
+            } catch (e: Exception) {
+                DriveroidLog.w(TAG, "Spotify deep link failed, just opening app", e)
                 return openMusicApp("spotify")
             }
         }
@@ -194,37 +196,39 @@ class MusicManager(private val context: Context) {
         DriveroidLog.w(TAG, "No way to search Spotify, just opening app")
         return openMusicApp("spotify")
     }
-    /** Plays YouTube Music for [query] - deep link with autoplay flag. */
+    /** Plays YouTube Music for [query] - tries web URL first, then deep link fallback. */
     private fun playInYouTubeMusic(query: String): Boolean {
         val encoded = Uri.encode(query)
 
-        val ytMusicIntent = Intent(Intent.ACTION_VIEW, Uri.parse("youtube-music://search?q=$encoded&autoplay=1")).apply {
+        // Web URL first - Android App Links are more reliable than custom schemes.
+        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://music.youtube.com/search?q=$encoded")).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         }
 
         val pm = context.packageManager
-        if (pm.resolveActivity(ytMusicIntent, 0) != null) {
-            try {
-                context.startActivity(ytMusicIntent)
-                DriveroidLog.i(TAG, "Playing YouTube Music via deep link for: $query")
-                return true
-            } catch (e: Exception) {
-                DriveroidLog.w(TAG, "YouTube Music deep link failed, trying web URL fallback", e)
-            }
-        } else {
-            DriveroidLog.w(TAG, "No app handles youtube-music:// deep link, trying web URL fallback")
-        }
-
-        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://music.youtube.com/search?q=$encoded")).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        }
         if (pm.resolveActivity(webIntent, 0) != null) {
             try {
                 context.startActivity(webIntent)
                 DriveroidLog.i(TAG, "Playing YouTube Music via web URL for: $query")
                 return true
             } catch (e: Exception) {
-                DriveroidLog.w(TAG, "YouTube Music web URL failed, just opening app", e)
+                DriveroidLog.w(TAG, "YouTube Music web URL failed, trying deep link", e)
+            }
+        } else {
+            DriveroidLog.w(TAG, "No app handles YouTube Music web URL, trying deep link")
+        }
+
+        // Fall back: deep link with autoplay parameter.
+        val ytMusicIntent = Intent(Intent.ACTION_VIEW, Uri.parse("youtube-music://search?q=$encoded&autoplay=1")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+        }
+        if (pm.resolveActivity(ytMusicIntent, 0) != null) {
+            try {
+                context.startActivity(ytMusicIntent)
+                DriveroidLog.i(TAG, "Playing YouTube Music via deep link for: $query")
+                return true
+            } catch (e: Exception) {
+                DriveroidLog.w(TAG, "YouTube Music deep link failed, just opening app", e)
                 return openMusicApp("youtube music")
             }
         }
@@ -233,37 +237,39 @@ class MusicManager(private val context: Context) {
         return openMusicApp("youtube music")
     }
 
-    /** Plays Spotify for [query] - deep link with context flag. */
+    /** Plays Spotify for [query] - tries web URL first, then deep link fallback. */
     private fun playInSpotify(query: String): Boolean {
         val encoded = Uri.encode(query)
 
-        val spotifyIntent = Intent(Intent.ACTION_VIEW, Uri.parse("spotify://search?q=$encoded&context=spotify")).apply {
+        // Web URL first - Android App Links are more reliable for Spotify.
+        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com/search/$encoded")).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         }
 
         val pm = context.packageManager
-        if (pm.resolveActivity(spotifyIntent, 0) != null) {
-            try {
-                context.startActivity(spotifyIntent)
-                DriveroidLog.i(TAG, "Playing Spotify via deep link for: $query")
-                return true
-            } catch (e: Exception) {
-                DriveroidLog.w(TAG, "Spotify deep link failed, trying web URL fallback", e)
-            }
-        } else {
-            DriveroidLog.w(TAG, "No app handles spotify:// deep link, trying web URL fallback")
-        }
-
-        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com/search/result?q=$encoded")).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        }
         if (pm.resolveActivity(webIntent, 0) != null) {
             try {
                 context.startActivity(webIntent)
                 DriveroidLog.i(TAG, "Playing Spotify via web URL for: $query")
                 return true
             } catch (e: Exception) {
-                DriveroidLog.w(TAG, "Spotify web URL failed, just opening app", e)
+                DriveroidLog.w(TAG, "Spotify web URL failed, trying deep link fallback", e)
+            }
+        } else {
+            DriveroidLog.w(TAG, "No app handles Spotify web URL, trying deep link")
+        }
+
+        // Fall back: Spotify deep link using correct URI scheme: spotify:search:QUERY
+        val spotifyIntent = Intent(Intent.ACTION_VIEW, Uri.parse("spotify:search:$encoded")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+        }
+        if (pm.resolveActivity(spotifyIntent, 0) != null) {
+            try {
+                context.startActivity(spotifyIntent)
+                DriveroidLog.i(TAG, "Playing Spotify via deep link for: $query")
+                return true
+            } catch (e: Exception) {
+                DriveroidLog.w(TAG, "Spotify deep link failed, just opening app", e)
                 return openMusicApp("spotify")
             }
         }
