@@ -9,6 +9,7 @@ import com.prettyj.driveroid.assistant.CallManager
 import com.prettyj.driveroid.assistant.Command
 import com.prettyj.driveroid.assistant.ContactManager
 import com.prettyj.driveroid.assistant.MusicManager
+import com.prettyj.driveroid.assistant.SpeechSynthesizer
 import com.prettyj.driveroid.assistant.speech.SpeechErrorKind
 import com.prettyj.driveroid.assistant.speech.SpeechEventListener
 import com.prettyj.driveroid.assistant.speech.SpeechRecognizerManager
@@ -48,6 +49,8 @@ class VoiceAssistantController(
     private val wakeWordDetector: WakeWordDetector = PhraseWakeWordDetector(),
     /** Invoked once when the pipeline fails for good, so the service can tear itself down. */
     private val onFatalError: (AssistantError) -> Unit = {},
+    /** Speaks confirmation announcements ("Listening", "Processing command"). */
+    private val speechSynthesizer: SpeechSynthesizer = SpeechSynthesizer(context.applicationContext),
 ) {
 
     /** What the current recognition session is waiting for. */
@@ -154,6 +157,7 @@ class VoiceAssistantController(
         cancelWatchdog()
         cancelPendingCallTimer()
         releasePipeline()
+        speechSynthesizer.shutdown()
         if (AssistantStateRepository.current.state != AssistantState.ERROR) {
             AssistantStateRepository.update(AssistantState.STOPPED)
         }
@@ -208,10 +212,13 @@ class VoiceAssistantController(
             return
         }
         DriveroidLog.i(TAG, "Wake word detected in \"$text\"")
+        speechSynthesizer.speak("Listening")
         if (remainder.isEmpty()) {
             session = Session.COMMAND
             AssistantStateRepository.update(AssistantState.LISTENING_FOR_COMMAND)
-            scheduleRestart(FAST_RESTART_MILLIS, "waiting for the command")
+            // Give TTS time to say "Listening" before the recogniser starts again,
+            // so it doesn't hear its own voice.
+            scheduleRestart(WAKE_WORD_TO_COMMAND_DELAY, "waiting for the command")
             return
         }
         // Wake word and command spoken in one breath: take it as the command.
@@ -219,6 +226,7 @@ class VoiceAssistantController(
     }
 
     private fun onCommandUtterance(text: String) {
+        speechSynthesizer.speak("Processing command")
         session = Session.COMMAND
 
         // If we are waiting for "in messenger" after a "call <name>", this utterance may be the suffix.
@@ -506,6 +514,9 @@ class VoiceAssistantController(
 
         /** Gap between two sessions that follow each other normally (result -> next session). */
         const val FAST_RESTART_MILLIS = 200L
+
+        /** Delay after wake word before starting command recognition, so TTS "Listening" finishes first. */
+        const val WAKE_WORD_TO_COMMAND_DELAY = 2000L
 
         /** How long [AssistantState.PROCESSING] is shown so the user sees their command was taken. */
         const val PROCESSING_HOLD_MILLIS = 1_200L

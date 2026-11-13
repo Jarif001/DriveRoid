@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
+    <!-- Wake lock: keeps the CPU awake during recognition so the assistant works when the app is
+         minimized or the screen is off. This is a normal (install-time) permission. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Foreground service (required since Android 9) and the microphone service type
          (required since Android 14 for android:foregroundServiceType="microphone").
          Both are install-time permissions, so they are never requested at runtime. -->

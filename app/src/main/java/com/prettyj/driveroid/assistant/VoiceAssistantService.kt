@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.prettyj.driveroid.assistant.notifications.AssistantNotifier
@@ -31,6 +32,7 @@ class VoiceAssistantService : Service() {
     private lateinit var controller: VoiceAssistantController
     private lateinit var notifier: AssistantNotifier
     private var isForeground = false
+    private lateinit var wakeLock: PowerManager.WakeLock
 
     override fun onCreate() {
         super.onCreate()
@@ -39,6 +41,13 @@ class VoiceAssistantService : Service() {
         // assistant is actually started. The callback lets a fatal mid-session failure (for example
         // a revoked microphone permission) tear this service down completely.
         controller = VoiceAssistantController(this, onFatalError = ::handleFatalError)
+        // Wake lock keeps the CPU awake during recognition so the assistant keeps working when
+        // the app is minimized or the screen is off.
+        wakeLock = (getSystemService(POWER_SERVICE) as PowerManager).run {
+            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Driveroid:VoiceAssistant").apply {
+                setReferenceCounted(true)
+            }
+        }
         DriveroidLog.i(TAG, "Service created on ${Build.MODEL} (API ${Build.VERSION.SDK_INT})")
     }
 
@@ -60,16 +69,19 @@ class VoiceAssistantService : Service() {
                 stopAssistant()
             }
             null -> {
-                // START_NOT_STICKY means the system never re-delivers an intent after killing the
-                // service, so this can only be an explicit null-intent start. Never resume
-                // listening silently in that case.
-                DriveroidLog.w(TAG, "Null intent: refusing to start the assistant")
-                stopSelf()
+                // START_STICKY means the system may re-deliver a null intent after killing the
+                // service. We treat it as a request to keep listening (auto-restart).
+                DriveroidLog.i(TAG, "Null intent received after system kill; keeping assistant alive")
+                if (!controller.isRunning) {
+                    handleStart()
+                }
+                return START_STICKY
             }
             else -> DriveroidLog.w(TAG, "Ignoring unknown action '${intent.action}'")
         }
-        // If the platform kills the process, the assistant ends instead of silently coming back.
-        return START_NOT_STICKY
+        // START_STICKY: if the system kills the process, it will attempt to recreate the service
+        // and re-deliver the last intent, so the assistant keeps running in the background.
+        return START_STICKY
     }
 
     /**
@@ -133,6 +145,10 @@ class VoiceAssistantService : Service() {
      */
     private fun enterForeground(): Boolean {
         return try {
+            // Acquire a partial wake lock so the CPU stays awake during recognition even when
+            // the app is minimized, the screen is off, or the device is dozing.
+            wakeLock.acquire()
+            DriveroidLog.d(TAG, "Wake lock acquired")
             ServiceCompat.startForeground(
                 this,
                 AssistantNotifier.NOTIFICATION_ID,
@@ -146,6 +162,7 @@ class VoiceAssistantService : Service() {
             // ForegroundServiceStartNotAllowedException (background start restriction),
             // SecurityException (microphone permission revoked, missing FGS type permission) ...
             DriveroidLog.e(TAG, "Could not enter the foreground", e)
+            wakeLock.release()
             controller.reportFailure(AssistantError.SERVICE_START_FAILED, e)
             releaseServiceResources()
             false
@@ -172,7 +189,11 @@ class VoiceAssistantService : Service() {
             // stays behind after the assistant stops.
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             DriveroidLog.i(TAG, "Left the foreground; notification removed")
-            return
+        }
+        // Release the wake lock so the CPU can sleep when the assistant is not actively running.
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+            DriveroidLog.d(TAG, "Wake lock released")
         }
         notifier.cancel()
     }
